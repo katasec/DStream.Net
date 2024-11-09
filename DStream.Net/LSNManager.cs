@@ -24,7 +24,7 @@ public class LSNManager
     public async Task InitializeAsync()
     {
         _currentLSN = await LoadLastLSNAsync() ?? new byte[10]; // Default LSN if not found
-        _logger.LogInformation($"Initialized LSN for {_tableName} with: {BitConverter.ToString(_currentLSN)}");
+        _logger.LogInformation($"Initialized LSN for {_tableName} with: {LSNManager.FormatLSN(_currentLSN)}");
     }
 
     // Retrieves the current LSN value
@@ -58,7 +58,7 @@ public class LSNManager
         await cmd.ExecuteNonQueryAsync();
 
         _currentLSN = newLSN;
-        _logger.LogInformation($"Saved new LSN for {_tableName}: {BitConverter.ToString(newLSN)}");
+        _logger.LogInformation($"Saved new LSN for {_tableName}: {LSNManager.FormatLSN(newLSN)}");
     }
 
     // Private helper to load the last LSN from the database
@@ -70,5 +70,13 @@ public class LSNManager
 
         var result = await cmd.ExecuteScalarAsync();
         return result == DBNull.Value ? null : (byte[])result;
+    }
+
+    /// <summary>
+    /// Formats the LSN byte array as a hexadecimal string prefixed with "0x".
+    /// </summary>
+    public static string FormatLSN(byte[] lsn)
+    {
+        return "0x" + BitConverter.ToString(lsn).Replace("-", string.Empty);
     }
 }

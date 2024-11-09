@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
+﻿using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Data.SqlClient;
 using DStream.Net;
 using Microsoft.Extensions.Logging;
+
+namespace DStream.Net;
 
 public class TableMonitoringService : BackgroundService, IAsyncDisposable
 {
@@ -105,7 +103,7 @@ public class TableMonitoringService : BackgroundService, IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            // Expected during shutdown; suppress logging of this exception.
+            _logger.LogInformation("Shutting down...");
         }
         finally
         {

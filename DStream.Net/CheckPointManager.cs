@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 
 namespace DStream.Net;
 
@@ -62,6 +60,7 @@ public class CheckpointManager
         cmd.Parameters.AddWithValue("@lastLSN", newLSN);
         await cmd.ExecuteNonQueryAsync();
 
-        Console.WriteLine($"Saved new LSN for {_tableName}: {BitConverter.ToString(newLSN)}");
+        
+        Console.WriteLine($"Saved new LSN for {_tableName}: {LSNManager.FormatLSN(newLSN)}");
     }
 }
