@@ -1,8 +1,10 @@
 ﻿using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Data.SqlClient;
-using DStream.Net;
 using Microsoft.Extensions.Logging;
+using DStream.Net.Database;
+using DStream.Net.Config;
+using DStream.Net.Database.SqlServer;
 
 namespace DStream.Net;
 
@@ -64,8 +66,9 @@ public class TableMonitoringService : BackgroundService, IAsyncDisposable
                 {
                     try
                     {
+                        // Create a SQLServerMonitor instance, which implements IDatabaseMonitor
                         var sqlMonitorLogger = _loggerFactory.CreateLogger<SQLServerMonitor>();
-                        var sqlMonitor = new SQLServerMonitor(
+                        IDatabaseMonitor sqlMonitor = new SQLServerMonitor(
                             dbConn,
                             tableConfig.Name,
                             tableConfig.GetPollInterval(),

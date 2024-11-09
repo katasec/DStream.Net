@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using DStream.Net;
+using DStream.Net.Config;
 
 // Configure Serilog with JSON console output
 Log.Logger = new LoggerConfiguration()
