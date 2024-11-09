@@ -1,8 +1,10 @@
 DbType: "sqlserver"
 DbConnectionString: "{{ env 'DSTREAM_DB_CONNECTION_STRING' }}"
-AzureEventHubConnectionString: "{{ env 'DSTREAM_EH_CONNECTION_STRING' }}"
-AzureEventHubName: "{{ env 'DSTREAM_EH_NAME' }}"
-OutputType: "console"
+
+# Downstream provider configuration
+DownstreamProviderType: "Console"  # Options: "EventHub", "ServiceBus", "Console"
+DownstreamConnectionString: "{{ env 'DSTREAM_DOWNSTREAM_CONNECTION_STRING' }}"  # Connection string for Event Hub or Service Bus
+
 Tables:
   - Name: "Persons"
     PollInterval: "5s"

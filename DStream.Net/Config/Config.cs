@@ -4,8 +4,10 @@ public class AppConfig
 {
     public string? DbType { get; set; }
     public string? DbConnectionString { get; set; }
-    public string? AzureEventHubConnectionString { get; set; }
-    public string? AzureEventHubName { get; set; }
-    public string? OutputType { get; set; }  // Make sure this matches "output_type" in YAML
+
+    // Downstream provider configuration
+    public string? DownstreamProviderType { get; set; } // e.g., "EventHub", "ServiceBus", "Console"
+    public string? DownstreamConnectionString { get; set; } // Connection string for the selected downstream provider
+
     public List<TableConfig>? Tables { get; set; }
 }

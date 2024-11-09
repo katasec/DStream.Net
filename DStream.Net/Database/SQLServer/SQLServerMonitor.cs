@@ -4,18 +4,16 @@ using Microsoft.Extensions.Logging;
 using System.Data;
 using DStream.Net.Database.SQLServer;
 using Microsoft.Data.SqlClient;
+using DStream.Net.Database;
 
 namespace DStream.Net.Database.SqlServer
 {
-    public delegate Task MonitoringCallback(MonitoringMessage message);
-
     public class SQLServerMonitor : IDatabaseMonitor
     {
         private readonly IDbConnection _dbConn;
         private readonly BackoffManager _backoffManager;
         private readonly LSNManager _lsnManager;
         private readonly CheckpointManager _checkpointManager;
-        private readonly MonitoringCallback _callback;
         private readonly ILogger<SQLServerMonitor> _logger;
         private readonly string _tableName;
 
@@ -24,40 +22,25 @@ namespace DStream.Net.Database.SqlServer
             string tableName,
             TimeSpan initialInterval,
             TimeSpan maxInterval,
-            MonitoringCallback callback,
             ILogger<SQLServerMonitor> logger,
             ILoggerFactory loggerFactory)
         {
             _dbConn = dbConn;
-            _backoffManager = new BackoffManager(initialInterval, maxInterval);
-
-            // Create a logger for LSNManager using loggerFactory
-            _lsnManager = new LSNManager((SqlConnection)dbConn, tableName, loggerFactory.CreateLogger<LSNManager>());
-
-            // Use injected logger for CheckpointManager
-            _checkpointManager = new CheckpointManager(dbConn, tableName, loggerFactory.CreateLogger<CheckpointManager>());
-            _callback = callback;
-            _logger = logger;
             _tableName = tableName;
+            _backoffManager = new BackoffManager(initialInterval, maxInterval);
+            _lsnManager = new LSNManager((SqlConnection)dbConn, tableName, loggerFactory.CreateLogger<LSNManager>());
+            _checkpointManager = new CheckpointManager(dbConn, tableName, loggerFactory.CreateLogger<CheckpointManager>());
+            _logger = logger;
         }
 
         public async Task InitializeAsync()
         {
             _logger.LogInformation($"Initializing SQLServerMonitor for table {_tableName}");
-
-            try
-            {
-                await _checkpointManager.InitializeCheckpointTableAsync();
-                await _lsnManager.InitializeAsync();
-                _logger.LogInformation("Initialization completed successfully.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to initialize SQLServerMonitor.");
-            }
+            await _checkpointManager.InitializeCheckpointTableAsync();
+            await _lsnManager.InitializeAsync();
         }
 
-        public async Task MonitorTableAsync(TableConfig tableConfig, CancellationToken cancellationToken)
+        public async Task MonitorTableAsync(TableConfig tableConfig, CancellationToken cancellationToken, MonitoringCallback callback)
         {
             _logger.LogInformation($"Starting monitoring for table {tableConfig.Name}");
 
@@ -72,22 +55,20 @@ namespace DStream.Net.Database.SqlServer
                     {
                         foreach (var changeData in changeResult.ChangeDataList)
                         {
-                            string jsonData = JsonSerializer.Serialize(changeData, new JsonSerializerOptions { WriteIndented = true });
-                            await _callback(new MonitoringMessage(tableConfig.Name, "ChangeDetected", jsonData));
+                            JsonSerializerOptions options = new() { WriteIndented = true };
+                            string jsonData = JsonSerializer.Serialize(changeData, options);
+                            await callback(new MonitoringMessage(tableConfig.Name, "ChangeDetected", jsonData));
                         }
 
                         await _checkpointManager.SaveLastLSNAsync(changeResult.NewLSN);
                         _lsnManager.UpdateCurrentLSN(changeResult.NewLSN);
                         _backoffManager.Reset();
-                        _logger.LogInformation($"Changes detected and processed for table {tableConfig.Name}.");
                     }
                     else
                     {
                         _backoffManager.Increase();
-                        _logger.LogInformation($"No changes detected for table {tableConfig.Name}. Next poll in {_backoffManager.GetCurrentInterval()}.");
                     }
 
-                    // Respect the cancellation token while delaying for the next poll interval
                     await Task.Delay(_backoffManager.GetCurrentInterval(), cancellationToken);
                 }
                 catch (OperationCanceledException)
@@ -100,8 +81,6 @@ namespace DStream.Net.Database.SqlServer
                     _logger.LogError(ex, $"Error monitoring table {tableConfig.Name}");
                 }
             }
-
-            _logger.LogInformation($"Stopped monitoring table {tableConfig.Name}.");
         }
 
         private async Task<CDCChangeResult> FetchCDCChangesAsync(string tableName, List<string> columns)
@@ -136,8 +115,6 @@ namespace DStream.Net.Database.SqlServer
 
                 changeDataList.Add(changeData);
             }
-
-            _logger.LogInformation($"Fetched {changeDataList.Count} changes for table {tableName}.");
 
             return new CDCChangeResult(changeDataList.Count > 0, latestLSN ?? _lsnManager.GetCurrentLSN(), changeDataList);
         }
