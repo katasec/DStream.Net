@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using DStream.Net.Config;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
 
 namespace DStream.Net
 {
@@ -21,13 +23,13 @@ namespace DStream.Net
             var missingFields = new List<string>();
 
             // Check for required fields in AppConfig
-            if (string.IsNullOrEmpty(_appConfig.DbType))
+            if (string.IsNullOrEmpty(_appConfig.DbType) || _appConfig.DbType.Contains("Missing env var:"))
                 missingFields.Add("DbType");
 
-            if (string.IsNullOrEmpty(_appConfig.DbConnectionString))
+            if (string.IsNullOrEmpty(_appConfig.DbConnectionString) || _appConfig.DbConnectionString.Contains("Missing env var:"))
                 missingFields.Add("DbConnectionString");
 
-            if (string.IsNullOrEmpty(_appConfig.DownstreamProviderType))
+            if (string.IsNullOrEmpty(_appConfig.DownstreamProviderType) || _appConfig.DownstreamProviderType.Contains("Missing env var:"))
                 missingFields.Add("DownstreamProviderType");
 
             // If DownstreamProviderType requires a connection string, check for it
