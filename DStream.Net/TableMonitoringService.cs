@@ -48,6 +48,7 @@ namespace DStream.Net
                 {
                     _logger.LogWarning("Failed to write message to channel.");
                 }
+                await Task.CompletedTask;
             };
 
             foreach (var tableConfig in _appConfig.Tables)
@@ -65,6 +66,11 @@ namespace DStream.Net
 
                 var monitorTask = Task.Run(async () =>
                 {
+                    if (tableConfig.Name == null)
+                    {
+                        _logger.LogError("Table name is null. Skipping monitoring.");
+                        return;
+                    }
                     using (dbConn)
                     {
                         try
